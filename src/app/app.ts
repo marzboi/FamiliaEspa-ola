@@ -1,10 +1,9 @@
 import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { Navbar } from './shared/components/navbar/navbar';
+import { FullscreenMapPage } from './pages/fullscreen-map-page/fullscreen-map-page';
 
 @Component({
   selector: 'app-root',
-  imports: [Navbar, RouterOutlet],
+  imports: [FullscreenMapPage],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
