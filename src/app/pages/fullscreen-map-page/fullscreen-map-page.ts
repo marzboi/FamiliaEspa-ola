@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, effect, ElementRef, signal, viewChild } from '@angular/core';
-import mapboxgl from 'mapbox-gl'; // or "const mapboxgl = require('mapbox-gl');"
+import mapboxgl from 'mapbox-gl';
 import { DecimalPipe, JsonPipe } from '@angular/common';
 import { environment } from '../../../environments/environment';
 
@@ -43,7 +43,6 @@ export class FullscreenMapPage implements AfterViewInit {
   zoomEffect = effect(() => {
     if (!this.map()) return;
 
-    // this.map()?.setZoom(this.zoom());
     this.map()?.zoomTo(this.zoom());
   });
 

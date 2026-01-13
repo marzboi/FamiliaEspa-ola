@@ -1,0 +1,28 @@
+{
+  "testimonies": [
+    {
+      "name": "Gabriela Ellena Castellotti",
+      "mail": "gabriela.ellena@gmail.com",
+      "ethnicity": "LATAM (Argentina)",
+      "autonomousCommunity": "",
+      "testimony": "",
+      "consent": false
+    },
+    {
+      "name": "Andrea Zhu",
+      "mail": "andrea.zhu@esnupm.org",
+      "ethnicity": "China",
+      "autonomousCommunity": "Asturias",
+      "testimony": "",
+      "consent": true
+    },
+    {
+      "name": "Chaimaa",
+      "mail": "",
+      "ethnicity": "",
+      "autonomousCommunity": "",
+      "testimony": "",
+      "consent": true
+    }
+  ]
+}
