@@ -8,9 +8,9 @@ import {
   viewChild,
 } from '@angular/core';
 import mapboxgl from 'mapbox-gl';
-import { DecimalPipe, JsonPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { environment } from '../../../environments/environment';
-import { Database } from '../../services/database';
+import { CommunityWithTestimonies, Database } from '../../services/database';
 
 mapboxgl.accessToken = environment.mapboxKey;
 
@@ -43,6 +43,7 @@ export class FullscreenMapPage implements AfterViewInit {
   divElement = viewChild<ElementRef>('map');
   map = signal<mapboxgl.Map | null>(null);
   private api = inject(Database);
+  private markers: mapboxgl.Marker[] = [];
 
   zoom = signal(6);
   coordinates = signal({
@@ -54,6 +55,16 @@ export class FullscreenMapPage implements AfterViewInit {
     if (!this.map()) return;
 
     this.map()?.zoomTo(this.zoom());
+  });
+
+  // Efecto para actualizar marcadores cuando cambian los testimonios
+  testimoniesEffect = effect(() => {
+    const testimoniesByCommunity = this.api.testimoniesByCommunity();
+    const map = this.map();
+
+    if (!map || testimoniesByCommunity.length === 0) return;
+
+    this.updateMarkers(testimoniesByCommunity);
   });
 
   async ngAfterViewInit() {
@@ -89,6 +100,11 @@ export class FullscreenMapPage implements AfterViewInit {
 
     map.on('load', () => {
       console.log('Map loaded');
+      // Cargar marcadores cuando el mapa esté listo
+      const testimoniesByCommunity = this.api.testimoniesByCommunity();
+      if (testimoniesByCommunity.length > 0) {
+        this.updateMarkers(testimoniesByCommunity);
+      }
     });
 
     map.addControl(new mapboxgl.FullscreenControl());
@@ -96,5 +112,114 @@ export class FullscreenMapPage implements AfterViewInit {
     map.addControl(new mapboxgl.ScaleControl());
 
     this.map.set(map);
+  }
+
+  /**
+   * Actualiza los marcadores en el mapa con los testimonios agrupados por comunidad
+   */
+  private updateMarkers(communities: CommunityWithTestimonies[]) {
+    const map = this.map();
+    if (!map) return;
+
+    // Limpiar marcadores existentes
+    this.markers.forEach((marker) => marker.remove());
+    this.markers = [];
+
+    // Crear un marcador por cada comunidad con testimonios
+    communities.forEach((community) => {
+      const popupContent = this.createPopupContent(community);
+
+      const popup = new mapboxgl.Popup({
+        maxWidth: '400px',
+        className: 'testimony-popup',
+      }).setHTML(popupContent);
+
+      // Crear elemento personalizado para el marcador
+      const markerElement = document.createElement('div');
+      markerElement.className = 'community-marker';
+      markerElement.innerHTML = `
+        <div style="
+          background-color: #ef4444;
+          color: white;
+          border-radius: 50%;
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          font-size: 14px;
+          border: 3px solid white;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          cursor: pointer;
+        ">
+          ${community.testimonies.length}
+        </div>
+      `;
+
+      const marker = new mapboxgl.Marker({ element: markerElement })
+        .setLngLat(community.lngLat)
+        .setPopup(popup)
+        .addTo(map);
+
+      this.markers.push(marker);
+    });
+  }
+
+  /**
+   * Crea el contenido HTML del popup con los testimonios de una comunidad
+   */
+  private createPopupContent(community: CommunityWithTestimonies): string {
+    const testimoniesHtml = community.testimonies
+      .map(
+        (t) => `
+        <div style="
+          border-bottom: 1px solid #e5e7eb;
+          padding: 12px 0;
+        ">
+          <div style="
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 4px;
+          ">${t.name}</div>
+          <div style="
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 8px;
+          ">${t.ethnicity}</div>
+          <div style="
+            font-size: 13px;
+            color: #374151;
+            line-height: 1.5;
+            max-height: 100px;
+            overflow-y: auto;
+          ">${t.testimony.substring(0, 250)}${t.testimony.length > 250 ? '...' : ''}</div>
+        </div>
+      `
+      )
+      .join('');
+
+    return `
+      <div style="max-height: 350px; overflow-y: auto;">
+        <h3 style="
+          font-size: 16px;
+          font-weight: 700;
+          color: #111827;
+          margin: 0 0 12px 0;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #ef4444;
+        ">
+          ${community.name}
+          <span style="
+            font-weight: 400;
+            font-size: 14px;
+            color: #6b7280;
+          ">(${community.testimonies.length} testimonio${
+      community.testimonies.length > 1 ? 's' : ''
+    })</span>
+        </h3>
+        ${testimoniesHtml}
+      </div>
+    `;
   }
 }
