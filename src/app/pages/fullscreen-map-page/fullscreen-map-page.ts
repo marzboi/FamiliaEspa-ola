@@ -154,7 +154,7 @@ export class FullscreenMapPage implements AfterViewInit {
       const popupContent = this.createPopupContent(community);
 
       const popup = new mapboxgl.Popup({
-        maxWidth: '400px',
+        maxWidth: '300px',
         className: 'testimony-popup',
       }).setHTML(popupContent);
 
