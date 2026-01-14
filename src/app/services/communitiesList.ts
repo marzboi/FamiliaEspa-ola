@@ -67,4 +67,8 @@ export const autonomousCommunities = [
     name: 'La Rioja',
     lngLat: [-2.40678, 42.28281],
   },
+  {
+    name: 'NA',
+    lngLat: [-3.70838, 40.40517],
+  },
 ];
