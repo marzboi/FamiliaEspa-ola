@@ -1,7 +1,16 @@
-import { AfterViewInit, Component, effect, ElementRef, signal, viewChild } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  effect,
+  ElementRef,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import mapboxgl from 'mapbox-gl';
 import { DecimalPipe, JsonPipe } from '@angular/common';
 import { environment } from '../../../environments/environment';
+import { Database } from '../../services/database';
 
 mapboxgl.accessToken = environment.mapboxKey;
 
@@ -33,6 +42,7 @@ mapboxgl.accessToken = environment.mapboxKey;
 export class FullscreenMapPage implements AfterViewInit {
   divElement = viewChild<ElementRef>('map');
   map = signal<mapboxgl.Map | null>(null);
+  private api = inject(Database);
 
   zoom = signal(6);
   coordinates = signal({
@@ -48,6 +58,8 @@ export class FullscreenMapPage implements AfterViewInit {
 
   async ngAfterViewInit() {
     if (!this.divElement()?.nativeElement) return;
+
+    this.api.getAllTestimonies();
 
     await new Promise((resolve) => setTimeout(resolve, 200));
 
