@@ -41,17 +41,11 @@ export class Database {
   public testimonies = computed(() => this.#state().testimonies);
   public loading = computed(() => this.#state().loading);
 
-  /**
-   * Agrupa los testimonios por comunidad autónoma y devuelve un array
-   * con las comunidades que tienen testimonios, incluyendo sus coordenadas
-   */
   public testimoniesByCommunity = computed<CommunityWithTestimonies[]>(() => {
     const testimonies = this.#state().testimonies;
 
-    // Crear un mapa para agrupar testimonios por comunidad
     const groupedMap = new Map<string, Testimony[]>();
 
-    // Agrupar testimonios por comunidad autónoma
     testimonies.forEach((testimony) => {
       const community = testimony.autonomousCommunity;
       if (!groupedMap.has(community)) {
@@ -60,7 +54,6 @@ export class Database {
       groupedMap.get(community)!.push(testimony);
     });
 
-    // Combinar con las coordenadas de las comunidades
     const result: CommunityWithTestimonies[] = [];
 
     groupedMap.forEach((communityTestimonies, communityName) => {

@@ -3,6 +3,7 @@ import {
   Component,
   effect,
   ElementRef,
+  HostListener,
   inject,
   signal,
   viewChild,
@@ -10,7 +11,7 @@ import {
 import mapboxgl from 'mapbox-gl';
 import { DecimalPipe } from '@angular/common';
 import { environment } from '../../../environments/environment';
-import { CommunityWithTestimonies, Database } from '../../services/database';
+import { CommunityWithTestimonies, Database, Testimony } from '../../services/database';
 
 mapboxgl.accessToken = environment.mapboxKey;
 
@@ -19,7 +20,7 @@ mapboxgl.accessToken = environment.mapboxKey;
   imports: [DecimalPipe],
   templateUrl: './fullscreen-map-page.html',
   styles: `
-    div {
+    #map-container {
       width: 100vw;
       height: 100vh;
     }
@@ -45,6 +46,37 @@ export class FullscreenMapPage implements AfterViewInit {
   private api = inject(Database);
   private markers: mapboxgl.Marker[] = [];
 
+  selectedTestimony = signal<Testimony | null>(null);
+  isModalOpen = signal(false);
+
+  private allTestimonies: Testimony[] = [];
+
+  constructor() {
+    (window as any).openTestimonyModal = (index: number, communityName: string) => {
+      const community = this.api.testimoniesByCommunity().find((c) => c.name === communityName);
+      if (community && community.testimonies[index]) {
+        this.openModal(community.testimonies[index]);
+      }
+    };
+  }
+
+  openModal(testimony: Testimony) {
+    this.selectedTestimony.set(testimony);
+    this.isModalOpen.set(true);
+  }
+
+  closeModal() {
+    this.isModalOpen.set(false);
+    this.selectedTestimony.set(null);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey() {
+    if (this.isModalOpen()) {
+      this.closeModal();
+    }
+  }
+
   zoom = signal(6);
   coordinates = signal({
     lng: -3.70838,
@@ -57,7 +89,6 @@ export class FullscreenMapPage implements AfterViewInit {
     this.map()?.zoomTo(this.zoom());
   });
 
-  // Efecto para actualizar marcadores cuando cambian los testimonios
   testimoniesEffect = effect(() => {
     const testimoniesByCommunity = this.api.testimoniesByCommunity();
     const map = this.map();
@@ -99,8 +130,6 @@ export class FullscreenMapPage implements AfterViewInit {
     });
 
     map.on('load', () => {
-      console.log('Map loaded');
-      // Cargar marcadores cuando el mapa esté listo
       const testimoniesByCommunity = this.api.testimoniesByCommunity();
       if (testimoniesByCommunity.length > 0) {
         this.updateMarkers(testimoniesByCommunity);
@@ -114,18 +143,13 @@ export class FullscreenMapPage implements AfterViewInit {
     this.map.set(map);
   }
 
-  /**
-   * Actualiza los marcadores en el mapa con los testimonios agrupados por comunidad
-   */
   private updateMarkers(communities: CommunityWithTestimonies[]) {
     const map = this.map();
     if (!map) return;
 
-    // Limpiar marcadores existentes
     this.markers.forEach((marker) => marker.remove());
     this.markers = [];
 
-    // Crear un marcador por cada comunidad con testimonios
     communities.forEach((community) => {
       const popupContent = this.createPopupContent(community);
 
@@ -134,7 +158,6 @@ export class FullscreenMapPage implements AfterViewInit {
         className: 'testimony-popup',
       }).setHTML(popupContent);
 
-      // Crear elemento personalizado para el marcador
       const markerElement = document.createElement('div');
       markerElement.className = 'community-marker';
       markerElement.innerHTML = `
@@ -166,17 +189,21 @@ export class FullscreenMapPage implements AfterViewInit {
     });
   }
 
-  /**
-   * Crea el contenido HTML del popup con los testimonios de una comunidad
-   */
   private createPopupContent(community: CommunityWithTestimonies): string {
     const testimoniesHtml = community.testimonies
       .map(
-        (t) => `
-        <div style="
-          border-bottom: 1px solid #e5e7eb;
-          padding: 12px 0;
-        ">
+        (t, index) => `
+        <div
+          onclick="window.openTestimonyModal(${index}, '${community.name.replace(/'/g, "\\'")}')"
+          style="
+            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+          "
+          onmouseover="this.style.backgroundColor='#f3f4f6'"
+          onmouseout="this.style.backgroundColor='transparent'"
+        >
           <div style="
             font-weight: 600;
             color: #1f2937;
@@ -194,6 +221,12 @@ export class FullscreenMapPage implements AfterViewInit {
             max-height: 100px;
             overflow-y: auto;
           ">${t.testimony.substring(0, 250)}${t.testimony.length > 250 ? '...' : ''}</div>
+          <div style="
+            font-size: 12px;
+            color: #ef4444;
+            margin-top: 8px;
+            font-weight: 500;
+          ">Click para leer más →</div>
         </div>
       `
       )
