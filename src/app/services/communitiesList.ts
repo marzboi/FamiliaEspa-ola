@@ -37,7 +37,7 @@ export const autonomousCommunities = [
   },
   {
     name: 'Cataluña',
-    lngLat: [-1.64657, 41.5912],
+    lngLat: [2.17634, 41.38325],
   },
   {
     name: 'Comunidad Valenciana',

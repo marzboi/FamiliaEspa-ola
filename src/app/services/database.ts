@@ -61,7 +61,7 @@ export class Database {
 
       if (communityData) {
         result.push({
-          name: communityName,
+          name: communityName === 'NA' ? 'No especificada' : communityName,
           lngLat: communityData.lngLat as [number, number],
           testimonies: communityTestimonies,
         });
