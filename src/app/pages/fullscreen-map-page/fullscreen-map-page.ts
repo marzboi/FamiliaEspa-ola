@@ -12,12 +12,14 @@ import mapboxgl from 'mapbox-gl';
 import { DecimalPipe } from '@angular/common';
 import { environment } from '../../../environments/environment';
 import { CommunityWithTestimonies, Database, Testimony } from '../../services/database';
+import { FilterService } from '../../services/filter.service';
+import { SidebarFilter } from '../../shared/components/sidebar-filter/sidebar-filter';
 
 mapboxgl.accessToken = environment.mapboxKey;
 
 @Component({
   selector: 'app-fullscreen-map-page',
-  imports: [DecimalPipe],
+  imports: [DecimalPipe, SidebarFilter],
   templateUrl: './fullscreen-map-page.html',
   styles: `
     #map-container {
@@ -37,14 +39,24 @@ mapboxgl.accessToken = environment.mapboxKey;
       border: 1px solid #e2e8f0;
       width: 250px;
     }
-
   `,
 })
 export class FullscreenMapPage implements AfterViewInit {
   divElement = viewChild<ElementRef>('map');
   map = signal<mapboxgl.Map | null>(null);
   private api = inject(Database);
+  private filterService = inject(FilterService);
   private markers: mapboxgl.Marker[] = [];
+
+  isSidebarOpen = signal(false);
+
+  toggleSidebar() {
+    this.isSidebarOpen.update((v) => !v);
+  }
+
+  closeSidebar() {
+    this.isSidebarOpen.set(false);
+  }
 
   selectedTestimony = signal<Testimony | null>(null);
   isModalOpen = signal(false);
@@ -91,11 +103,17 @@ export class FullscreenMapPage implements AfterViewInit {
 
   testimoniesEffect = effect(() => {
     const testimoniesByCommunity = this.api.testimoniesByCommunity();
+    const selectedCommunities = this.filterService.selectedCommunityNames();
     const map = this.map();
 
     if (!map || testimoniesByCommunity.length === 0) return;
 
-    this.updateMarkers(testimoniesByCommunity);
+    const filteredCommunities = testimoniesByCommunity.filter((community) => {
+      const originalName = community.name === 'No especificada' ? 'NA' : community.name;
+      return selectedCommunities.has(originalName) || selectedCommunities.has(community.name);
+    });
+
+    this.updateMarkers(filteredCommunities);
   });
 
   async ngAfterViewInit() {
@@ -228,7 +246,7 @@ export class FullscreenMapPage implements AfterViewInit {
             font-weight: 500;
           ">Click para leer más →</div>
         </div>
-      `
+      `,
       )
       .join('');
 
@@ -248,8 +266,8 @@ export class FullscreenMapPage implements AfterViewInit {
             font-size: 14px;
             color: #6b7280;
           ">(${community.testimonies.length} testimonio${
-      community.testimonies.length > 1 ? 's' : ''
-    })</span>
+            community.testimonies.length > 1 ? 's' : ''
+          })</span>
         </h3>
         ${testimoniesHtml}
       </div>
